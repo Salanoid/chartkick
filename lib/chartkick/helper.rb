@@ -3,42 +3,42 @@ require "erb"
 
 module Chartkick
   module Helper
-    def line_chart(data_source, **options)
-      chartkick_chart "LineChart", data_source, **options
+    def line_chart(data_source, *options)
+      chartkick_chart "LineChart", data_source, options
     end
 
-    def pie_chart(data_source, **options)
-      chartkick_chart "PieChart", data_source, **options
+    def pie_chart(data_source, *options)
+      chartkick_chart "PieChart", data_source, options
     end
 
-    def column_chart(data_source, **options)
-      chartkick_chart "ColumnChart", data_source, **options
+    def column_chart(data_source, *options)
+      chartkick_chart "ColumnChart", data_source, options
     end
 
-    def bar_chart(data_source, **options)
-      chartkick_chart "BarChart", data_source, **options
+    def bar_chart(data_source, *options)
+      chartkick_chart "BarChart", data_source, options
     end
 
-    def area_chart(data_source, **options)
-      chartkick_chart "AreaChart", data_source, **options
+    def area_chart(data_source, *options)
+      chartkick_chart "AreaChart", data_source, options
     end
 
-    def scatter_chart(data_source, **options)
-      chartkick_chart "ScatterChart", data_source, **options
+    def scatter_chart(data_source, *options)
+      chartkick_chart "ScatterChart", data_source, options
     end
 
-    def geo_chart(data_source, **options)
-      chartkick_chart "GeoChart", data_source, **options
+    def geo_chart(data_source, *options)
+      chartkick_chart "GeoChart", data_source, options
     end
 
-    def timeline(data_source, **options)
-      chartkick_chart "Timeline", data_source, **options
+    def timeline(data_source, *options)
+      chartkick_chart "Timeline", data_source, options
     end
 
     private
 
     # don't break out options since need to merge with default options
-    def chartkick_chart(klass, data_source, **options)
+    def chartkick_chart(klass, data_source, *options)
       options = chartkick_deep_merge(Chartkick.options, options)
 
       @chartkick_chart_id ||= 0
@@ -141,7 +141,7 @@ module Chartkick
     # https://github.com/rails/rails/blob/master/activesupport/lib/active_support/core_ext/hash/deep_merge.rb
     def chartkick_deep_merge(hash_a, hash_b)
       hash_a = hash_a.dup
-      hash_b.each_pair do |k, v|
+      hash_b.each do |k, v|
         tv = hash_a[k]
         hash_a[k] = tv.is_a?(Hash) && v.is_a?(Hash) ? chartkick_deep_merge(tv, v) : v
       end
