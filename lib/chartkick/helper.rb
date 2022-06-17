@@ -3,51 +3,56 @@ require "erb"
 
 module Chartkick
   module Helper
-    def line_chart(data_source, **options)
+    def line_chart(data_source, *options)
       chartkick_chart "LineChart", data_source, options
     end
 
-    def pie_chart(data_source, **options)
+    def pie_chart(data_source, *options)
       chartkick_chart "PieChart", data_source, options
     end
 
-    def column_chart(data_source, **options)
+    def column_chart(data_source, *options)
       chartkick_chart "ColumnChart", data_source, options
     end
 
-    def bar_chart(data_source, **options)
+    def bar_chart(data_source, *options)
       chartkick_chart "BarChart", data_source, options
     end
 
-    def area_chart(data_source, **options)
+    def area_chart(data_source, *options)
       chartkick_chart "AreaChart", data_source, options
     end
 
-    def scatter_chart(data_source, **options)
+    def scatter_chart(data_source, *options)
       chartkick_chart "ScatterChart", data_source, options
     end
 
-    def geo_chart(data_source, **options)
+    def geo_chart(data_source, *options)
       chartkick_chart "GeoChart", data_source, options
     end
 
-    def timeline(data_source, **options)
+    def timeline(data_source, *options)
       chartkick_chart "Timeline", data_source, options
     end
 
     private
 
-    def chartkick_chart(klass, data_source, **options)
-      @chartkick_chart_id ||= 0
+    # don't break out options since need to merge with default options
+    def chartkick_chart(klass, data_source, *options)
       options = chartkick_deep_merge(Chartkick.options, options)
+
+      @chartkick_chart_id ||= 0
       element_id = options.delete(:id) || "chart-#{@chartkick_chart_id += 1}"
-      height = options.delete(:height) || "300px"
-      width = options.delete(:width) || "100%"
+
+      height = (options.delete(:height) || "300px").to_s
+      width = (options.delete(:width) || "100%").to_s
       defer = !!options.delete(:defer)
+
       # content_for: nil must override default
       content_for = options.key?(:content_for) ? options.delete(:content_for) : Chartkick.content_for
 
-      nonce = options.delete(:nonce)
+      nonce = options.fetch(:nonce, true)
+      options.delete(:nonce)
       if nonce == true
         # Secure Headers also defines content_security_policy_nonce but it takes an argument
         # Rails 5.2 overrides this method, but earlier versions do not
@@ -57,6 +62,8 @@ module Chartkick
         elsif respond_to?(:content_security_policy_script_nonce)
           # Secure Headers
           nonce = content_security_policy_script_nonce
+        else
+          nonce = nil
         end
       end
       nonce_html = nonce ? " nonce=\"#{ERB::Util.html_escape(nonce)}\"" : nil
@@ -65,12 +72,26 @@ module Chartkick
       html_vars = {
         id: element_id,
         height: height,
-        width: width
+        width: width,
+        # don't delete loading option since it needs to be passed to JS
+        loading: options[:loading] || "Loading..."
       }
+
+      [:height, :width].each do |k|
+        # limit to alphanumeric and % for simplicity
+        # this prevents things like calc() but safety is the priority
+        # dot does not need escaped in square brackets
+        raise ArgumentError, "Invalid #{k}" unless html_vars[k] =~ /\A[a-zA-Z0-9%.]*\z/
+      end
+
       html_vars.each_key do |k|
+        # escape all variables
+        # we already limit height and width above, but escape for safety as fail-safe
+        # to prevent XSS injection in worse-case scenario
         html_vars[k] = ERB::Util.html_escape(html_vars[k])
       end
-      html = (options.delete(:html) || %(<div id="%{id}" style="height: %{height}; width: %{width}; text-align: center; color: #999; line-height: %{height}; font-size: 14px; font-family: 'Lucida Grande', 'Lucida Sans Unicode', Verdana, Arial, Helvetica, sans-serif;">Loading...</div>)) % html_vars
+
+      html = (options.delete(:html) || %(<div id="%{id}" style="height: %{height}; width: %{width}; text-align: center; color: #999; line-height: %{height}; font-size: 14px; font-family: 'Lucida Grande', 'Lucida Sans Unicode', Verdana, Arial, Helvetica, sans-serif;">%{loading}</div>)) % html_vars
 
       # js vars
       js_vars = {
@@ -119,7 +140,7 @@ JS
     # https://github.com/rails/rails/blob/master/activesupport/lib/active_support/core_ext/hash/deep_merge.rb
     def chartkick_deep_merge(hash_a, hash_b)
       hash_a = hash_a.dup
-      hash_b.each_pair do |k, v|
+      hash_b.each do |k, v|
         tv = hash_a[k]
         hash_a[k] = tv.is_a?(Hash) && v.is_a?(Hash) ? chartkick_deep_merge(tv, v) : v
       end
