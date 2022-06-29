@@ -39,6 +39,7 @@ module Chartkick
 
     # don't break out options since need to merge with default options
     def chartkick_chart(klass, data_source, *options)
+      options = options.flatten.reduce Hash.new, :merge
       options = chartkick_deep_merge(Chartkick.options, options)
 
       @chartkick_chart_id ||= 0
